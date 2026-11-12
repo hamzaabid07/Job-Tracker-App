@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Tracker — Interface Cards</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+<style>
+  :root {
+    --canvas: #ebebe8;
+    --tile: #f5f5f3;
+    --card: #ffffff;
+    --ink: #0d0d0c;
+    --ink-2: #55554f;
+    --ink-3: #94948d;
+    --line: #ecece8;
+    --fill: #f1f1ee;
+    --green: #1fc65a;
+    --green-2: #9be22d;
+    --green-tint: #e6f8ec;
+    --green-ink: #0e8a3b;
+    --shadow: 0 1px 2px rgba(13,13,12,.04), 0 10px 28px rgba(13,13,12,.05);
+    --ease: cubic-bezier(.3,.7,.2,1);
+    --spring: cubic-bezier(.34,1.56,.64,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font: 500 13px/1.35 Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+    min-height: 100vh;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: default; }
+  svg { display: block; }
+  .ic { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- canvas ---------- */
+  .board {
+    max-width: 1440px; margin: 0 auto; padding: 36px;
+    display: grid; gap: 14px;
+    grid-template-columns: 1.22fr .86fr 1.26fr .86fr 1.22fr;
+    align-items: stretch;
+  }
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .tile {
+    position: relative; overflow: hidden;
+    background: var(--tile); border-radius: 28px; padding: 16px;
+    flex: 1 0 auto; display: grid; align-content: center; min-width: 0;
+  }
+  .tile.bare { padding: 22px 22px; }
+  .tile.dark { background: var(--ink); color: #fff; }
+  .card { background: var(--card); border-radius: 20px; padding: 16px; box-shadow: var(--shadow); min-width: 0; }
+  .card + .card { margin-top: 10px; }
+
+  .h { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
+  .sub { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+  .row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .grow { flex: 1; min-width: 0; }
+  .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .big { font-size: 40px; line-height: 1; font-weight: 680; letter-spacing: -.035em; }
+
+  .av { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; flex: none; }
+  .av.g2 { background: #3a3a36; } .av.g3 { background: #77776f; } .av.g4 { background: #b4b4ac; } .av.gr { background: var(--green); }
+  .av.lg { width: 32px; height: 32px; font-size: 12.5px; border-radius: 10px; }
+
+  .tapdot { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: rgba(120,120,115,.34); pointer-events: none; z-index: 5; animation: tap .55s var(--ease) forwards; }
+  @keyframes tap { 0% { transform: scale(.35); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.15); opacity: 0; } }
+  .is-press { transform: scale(.94); }
+  .pressable { transition: transform .16s var(--ease), background .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease); }
+
+  .caret::after { content: ""; display: inline-block; width: 1.5px; height: 1.05em; background: var(--ink); margin-left: 1px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------- 1 calendar ---------- */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav span { width: 22px; height: 22px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; color: var(--ink-2); }
+  .cal-nav .ic { width: 10px; height: 10px; stroke-width: 2.6; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 3px; text-align: center; }
+  .cal-grid b { font-size: 9.5px; font-weight: 600; color: var(--ink-3); padding-bottom: 6px; }
+  .day { position: relative; height: 30px; display: grid; place-items: center; font-size: 11.5px; font-weight: 600; }
+  .day span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; transition: background .28s var(--ease), color .28s var(--ease), transform .28s var(--spring); }
+  .day.today span { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .day.has::after { content: ""; position: absolute; bottom: 1px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--green); transition: opacity .2s; }
+  .day.sel span { background: var(--green); color: #fff; box-shadow: none; transform: scale(1.06); }
+  .day.sel::after { opacity: 0; }
+  .cal-event { margin-top: 12px; background: var(--fill); border-radius: 12px; padding: 9px 11px; display: flex; gap: 8px; align-items: center; font-size: 11.5px; font-weight: 600; }
+  .cal-event .ic { width: 12px; height: 12px; }
+  .swap { transition: opacity .2s var(--ease), transform .2s var(--ease); }
+  .swap.out { opacity: 0; transform: translateY(4px); }
+
+  /* ---------- 2 tabs ---------- */
+  .seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); background: #e9e9e5; border-radius: 999px; padding: 4px; }
+  .seg button { position: relative; z-index: 1; height: 30px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); transition: color .3s var(--ease); white-space: nowrap; }
+  .seg button.on { color: var(--ink); }
+  .seg button em { font-style: normal; opacity: .55; margin-left: 3px; }
+  .seg i { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); background: #fff; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.1); transition: transform .42s var(--spring); }
+
+  /* ---------- 3 target salary ---------- */
+  .target { text-align: center; padding: 20px 14px 18px; }
+  .target .line { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 10px; }
+  .rbtn { width: 26px; height: 26px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; color: var(--ink-2); }
+  .rbtn .ic { width: 11px; height: 11px; stroke-width: 2.6; }
+  .target .big { font-size: 36px; }
+  .bump { animation: bump .32s var(--spring); }
+  @keyframes bump { 40% { transform: scale(1.06); } }
+
+  /* ---------- 4 search ---------- */
+  .field { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; background: #fff; border-radius: 999px; box-shadow: var(--shadow); font-size: 12px; font-weight: 550; white-space: nowrap; overflow: hidden; }
+  .field .ic { color: var(--ink-3); width: 13px; height: 13px; }
+  .ph { color: var(--ink-3); font-weight: 500; }
+  .count-pill { margin-left: auto; font-size: 10.5px; font-weight: 650; color: var(--green-ink); background: var(--green-tint); border-radius: 999px; padding: 3px 8px; opacity: 0; transform: scale(.8); transition: all .3s var(--spring); }
+  .count-pill.on { opacity: 1; transform: none; }
+
+  .bub { width: fit-content; max-width: 100%; margin: 0 0 10px auto; background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 600; padding: 7px 11px; border-radius: 14px 14px 4px 14px; transform-origin: bottom right; transition: transform .4s var(--spring), opacity .25s var(--ease); }
+  .bub.off { transform: scale(.6) translateY(10px); opacity: 0; }
+  .send { width: 30px; height: 30px; border-radius: 50%; background: #e4e4e0; color: #fff; display: grid; place-items: center; flex: none; margin-left: auto; }
+  .send.ready { background: var(--green); }
+  .send .ic { width: 12px; height: 12px; color: #fff; stroke-width: 2.6; }
+
+  /* ---------- 5 funnel ---------- */
+  .fun { display: grid; gap: 9px; margin-top: 14px; }
+  .fun .r { display: grid; grid-template-columns: 62px 1fr 22px; align-items: center; gap: 8px; font-size: 11.5px; }
+  .fun .r > span:first-child { color: var(--ink-2); }
+  .fun .r > span:last-child { text-align: right; font-weight: 650; }
+  .bar { height: 10px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: var(--w); border-radius: 999px; background: var(--ink); transform-origin: left; transition: transform .8s var(--ease); }
+  .bar i.g { background: linear-gradient(90deg, var(--green), var(--green-2)); }
+  .fun.reset .bar i { transform: scaleX(0); transition: none; }
+
+  /* ---------- 6 in progress ---------- */
+  .list { display: grid; gap: 4px; margin-top: 12px; }
+  .li { display: flex; align-items: center; gap: 9px; padding: 6px 6px; margin: 0 -6px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .li.pressable.flash { background: #fff; box-shadow: var(--shadow); }
+  .chip { margin-left: auto; font-size: 10.5px; font-weight: 650; padding: 3px 8px; border-radius: 999px; background: #e9e9e5; color: var(--ink-2); transition: background .3s var(--ease), color .3s var(--ease); white-space: nowrap; }
+  .chip.g { background: var(--green); color: #fff; }
+  .chip.k { background: var(--ink); color: #fff; }
+  .chip.pop { animation: bump .36s var(--spring); }
+
+  /* ---------- 7 upload ---------- */
+  .doc { width: 30px; height: 30px; border-radius: 10px; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; margin-bottom: 12px; transition: background .3s, color .3s; }
+  .doc.done { background: var(--green); color: #fff; }
+  .prog { height: 4px; border-radius: 999px; background: #e4e4e0; margin-top: 10px; overflow: hidden; }
+  .prog i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--green), var(--green-2)); }
+
+  /* ---------- 8 rating ---------- */
+  .stars { display: flex; gap: 5px; justify-content: center; margin-top: 12px; }
+  .stars svg { width: 19px; height: 19px; fill: #dcdcd7; transition: fill .2s, transform .3s var(--spring); }
+  .stars svg.on { fill: var(--green); transform: scale(1.12); }
+
+  /* ---------- 9 email sheet ---------- */
+  .sheet-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .x { width: 20px; height: 20px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; color: var(--ink-3); }
+  .x .ic { width: 9px; height: 9px; stroke-width: 2.8; }
+  .to { display: flex; align-items: center; gap: 8px; background: var(--fill); border-radius: 12px; padding: 8px 10px; font-size: 11.5px; font-weight: 600; }
+  .kv { display: flex; gap: 10px; align-items: baseline; padding: 10px 2px 0; font-size: 12px; }
+  .kv > span:first-child { color: var(--ink-3); width: 52px; flex: none; }
+  .kv > span:last-child { font-weight: 600; min-height: 32px; }
+  .cta { width: 100%; height: 38px; margin-top: 12px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .cta.sent { background: linear-gradient(90deg, var(--green), var(--green-2)); }
+  .cta .ic { width: 12px; height: 12px; stroke-width: 2.8; }
+
+  /* ---------- 10 notification ---------- */
+  .note { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 999px; padding: 9px 14px 9px 9px; box-shadow: var(--shadow); font-size: 12px; font-weight: 600; transition: transform .5s var(--spring), opacity .3s var(--ease); }
+  .note.off { transform: translateY(-70%) scale(.96); opacity: 0; transition-duration: .22s; }
+  .okdot { width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; flex: none; }
+  .okdot .ic { width: 11px; height: 11px; stroke-width: 3; }
+  .note time { margin-left: auto; font-size: 10.5px; color: var(--ink-3); font-weight: 500; }
+
+  /* ---------- 11 status ---------- */
+  .status { padding: 22px; }
+  .status .av.lg { background: #fff; color: var(--ink); }
+  .status .sub { color: #8d8d86; }
+  .track { position: relative; margin: 24px 6px 0; height: 14px; }
+  .track::before, .track i { content: ""; position: absolute; left: 0; top: 6px; height: 2px; border-radius: 2px; }
+  .track::before { right: 0; background: #33332f; }
+  .track i { width: var(--p, 33.3%); background: linear-gradient(90deg, var(--green), var(--green-2)); transition: width .7s var(--ease); }
+  .node { position: absolute; top: 0; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #33332f; border: 3px solid var(--ink); display: grid; place-items: center; transition: background .3s var(--ease) .35s, transform .4s var(--spring) .35s; }
+  .node.on { background: var(--green); transform: scale(1.15); }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); margin: 9px -22px 0; font-size: 10.5px; color: #77776f; font-weight: 600; }
+  .steps span { text-align: center; transition: color .3s; }
+  .steps span.on { color: #fff; }
+  .status-foot { margin-top: 18px; background: #1d1d1b; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; }
+  .status-foot .ic { color: var(--green); width: 12px; height: 12px; }
+
+  /* ---------- 12 new jobs ---------- */
+  .job { display: flex; align-items: center; gap: 9px; padding: 9px 0; }
+  .job + .job { border-top: 1px solid var(--line); }
+  .job:last-child { padding-bottom: 0; }
+  .apply { height: 28px; padding: 0 10px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 11px; font-weight: 650; display: flex; align-items: center; gap: 4px; flex: none; width: 62px; justify-content: center; }
+  .apply.done { background: var(--green-tint); color: var(--green-ink); }
+  .apply .ic { width: 10px; height: 10px; stroke-width: 3; }
+
+  /* ---------- 13 ring ---------- */
+  .ringwrap { text-align: center; padding: 6px 0; }
+  .ring { position: relative; width: 84px; height: 84px; margin: 0 auto 10px; }
+  .ring svg { width: 84px; height: 84px; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 6; }
+  .ring .bg { stroke: #2b2b28; }
+  .ring .fg { stroke: var(--green); stroke-linecap: round; stroke-dasharray: 213.6; stroke-dashoffset: 42.7; transition: stroke-dashoffset .8s var(--ease); }
+  .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+
+  /* ---------- 14 stats ---------- */
+  .bars { display: flex; align-items: flex-end; gap: 7px; height: 52px; margin-top: 14px; }
+  .bars i { flex: 1; height: var(--h); border-radius: 5px; background: #dededa; transform-origin: bottom; transition: height .7s var(--ease); }
+  .bars i.g { background: linear-gradient(0deg, var(--green), var(--green-2)); }
+
+  /* ---------- 15 outcomes ---------- */
+  .li .name { transition: color .3s, opacity .3s; }
+  .li.arch .name { text-decoration: line-through; color: var(--ink-3); }
+  .li.arch .av { opacity: .4; }
+
+  /* ---------- 16 countdown ---------- */
+  .timer { text-align: center; }
+  .timer .big { font-size: 34px; margin: 6px 0 12px; color: var(--ink); }
+  .tbtns { display: flex; gap: 8px; justify-content: center; }
+  .cbtn { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fff; box-shadow: var(--shadow); color: var(--ink-2); }
+  .cbtn.go { background: var(--green); color: #fff; box-shadow: none; }
+  .cbtn.set { background: var(--ink); color: #fff; }
+  .cbtn .ic { width: 12px; height: 12px; }
+
+  /* ---------- 17 toggles ---------- */
+  .tg { display: flex; align-items: center; gap: 10px; }
+  .tg + .tg { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .sw { width: 36px; height: 22px; border-radius: 999px; background: #dededa; position: relative; flex: none; transition: background .3s var(--ease); }
+  .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .38s var(--spring); }
+  .sw.on { background: var(--green); }
+  .sw.on::after { transform: translateX(14px); }
+  .ico { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; flex: none; }
+  .ico .ic { width: 11px; height: 11px; }
+
+  /* ---------- 18 chips ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .fc { height: 30px; padding: 0 12px; border-radius: 999px; background: #fff; box-shadow: var(--shadow); font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 0; }
+  .fc .ic { width: 0; height: 10px; stroke-width: 3; opacity: 0; transition: width .25s var(--ease), opacity .2s, margin .25s var(--ease); }
+  .fc.on { background: linear-gradient(90deg, var(--green), var(--green-2)); color: #06310f; box-shadow: none; }
+  .fc.on .ic { width: 10px; opacity: 1; margin-right: 5px; }
+
+  /* ---------- 19 offers ---------- */
+  .cmp { display: grid; grid-template-columns: 54px 1fr 1fr; align-items: center; row-gap: 2px; column-gap: 4px; margin-top: 12px; font-size: 11.5px; }
+  .cmp .lab { color: var(--ink-3); font-size: 11px; }
+  .cmp .hd { display: flex; align-items: center; gap: 6px; font-weight: 650; padding: 0 8px 8px; font-size: 12px; }
+  .cmp .hd .av { width: 18px; height: 18px; font-size: 9px; }
+  .cmp .v { padding: 6px 8px; border-radius: 9px; font-weight: 600; transition: background .3s var(--ease), color .3s var(--ease); white-space: nowrap; }
+  .cmp .v.win { background: var(--green-tint); color: var(--green-ink); }
+  .cmp .tot { font-weight: 700; font-size: 12.5px; }
+  .cmp .tot.win { background: var(--green); color: #fff; }
+  .cmp .rule { grid-column: 1 / -1; height: 1px; background: var(--line); margin: 6px 0; }
+
+  /* ---------- 20 checklist ---------- */
+  .ck { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 600; padding: 5px 0; transition: color .3s; }
+  .ck.todo { color: var(--ink-3); }
+  .ck i { width: 16px; height: 16px; border-radius: 50%; background: #e4e4e0; display: grid; place-items: center; color: #fff; flex: none; transition: background .3s var(--ease), transform .35s var(--spring); }
+  .ck i .ic { width: 9px; height: 9px; stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
+  .ck.done i { background: var(--green); transform: scale(1.08); }
+  .ck.done i .ic { opacity: 1; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1180px) {
+    .board { display: block; columns: 3; column-gap: 14px; padding: 24px; }
+    .col { display: contents; }
+    .tile { break-inside: avoid; margin-bottom: 14px; }
+  }
+  @media (max-width: 820px) { .board { columns: 2; column-gap: 12px; padding: 16px; } .tile { margin-bottom: 12px; } }
+  @media (max-width: 520px) { .board { columns: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></symbol>
+  <symbol id="left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="2.5"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></symbol>
+  <symbol id="file" viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4zM9 2.5v3h3M6.5 9h3M6.5 11.5h3"/></symbol>
+  <symbol id="bell" viewBox="0 0 16 16"><path d="M4 11V7.5a4 4 0 018 0V11l1 1.5H3zM6.8 14h2.4"/></symbol>
+  <symbol id="video" viewBox="0 0 16 16"><rect x="2" y="4.5" width="8.5" height="7" rx="2"/><path d="M10.5 7.2L14 5.5v5l-3.5-1.7"/></symbol>
+  <symbol id="mail" viewBox="0 0 16 16"><rect x="2" y="3.5" width="12" height="9" rx="2.5"/><path d="M2.5 5l5.5 4 5.5-4"/></symbol>
+  <symbol id="up" viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></symbol>
+  <symbol id="star" viewBox="0 0 20 20"><path d="M10 1.8l2.5 5.2 5.7.8-4.1 4 1 5.7L10 14.8l-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/></symbol>
+</svg>
+
+<main class="board">
+
+  <!-- ============ column 1 ============ -->
+  <div class="col">
+
+    <section class="tile" id="t-cal" aria-label="Interview calendar">
+      <div class="card">
+        <div class="cal-head">
+          <span class="h">November 2026</span>
+          <span class="cal-nav"><span><svg class="ic"><use href="#left"/></svg></span><span><svg class="ic"><use href="#right"/></svg></span></span>
+        </div>
+        <div class="cal-grid" id="cal"></div>
+        <div class="cal-event"><svg class="ic"><use href="#i-cal"/></svg><span class="swap clip" id="cal-ev">Linear critique · Fri 2 pm</span></div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-target" aria-label="Target salary">
+      <div class="card target">
+        <div class="sub">Target base salary</div>
+        <div class="line">
+          <button class="rbtn pressable" id="t-minus"><svg class="ic"><use href="#minus"/></svg></button>
+          <div class="big" id="t-val">$160,000</div>
+          <button class="rbtn pressable" id="t-plus"><svg class="ic"><use href="#plus"/></svg></button>
+        </div>
+        <div class="sub swap" id="t-sub">11 of 14 active roles meet this</div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-search" aria-label="Search and filter applications">
+      <div>
+        <div class="field">
+          <svg class="ic"><use href="#search"/></svg>
+          <span id="s-text" class="ph">Search roles or companies</span>
+          <span class="count-pill" id="s-count">6 roles</span>
+        </div>
+        <div class="seg" id="seg" style="margin-top:12px">
+          <i></i>
+          <button class="on">Active<em>14</em></button>
+          <button>Interviews<em>5</em></button>
+          <button>Closed<em>7</em></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-fun" aria-label="Pipeline">
+      <div class="card">
+        <div class="row"><span class="h grow">Pipeline</span><span class="sub">Since 1 Oct</span></div>
+        <div class="fun" id="fun">
+          <div class="r"><span>Applied</span><div class="bar"><i style="--w:100%"></i></div><span data-n="26">26</span></div>
+          <div class="r"><span>Screen</span><div class="bar"><i style="--w:46%"></i></div><span data-n="12">12</span></div>
+          <div class="r"><span>Interview</span><div class="bar"><i style="--w:27%"></i></div><span data-n="7">7</span></div>
+          <div class="r"><span>Offer</span><div class="bar"><i class="g" style="--w:9%"></i></div><span data-n="2">2</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ column 2 ============ -->
+  <div class="col">
+
+    <section class="tile bare" id="t-prog" aria-label="Applications in progress">
+      <div>
+        <div class="h">In progress</div>
+        <div class="sub">5 of 14 active</div>
+        <div class="list" id="prog">
+          <div class="li pressable"><span class="av">L</span><span class="name clip">Linear</span><span class="chip k">Interview</span></div>
+          <div class="li pressable"><span class="av g2">F</span><span class="name clip">Figma</span><span class="chip">Screen</span></div>
+          <div class="li pressable"><span class="av g3">V</span><span class="name clip">Vercel</span><span class="chip">Applied</span></div>
+          <div class="li pressable"><span class="av g2">M</span><span class="name clip">Monzo</span><span class="chip">Applied</span></div>
+          <div class="li pressable"><span class="av g4">S</span><span class="name clip">Spotify</span><span class="chip">Screen</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile bare" id="t-up" aria-label="Résumé upload">
+      <div>
+        <div class="doc" id="up-ic"><svg class="ic"><use href="#file"/></svg></div>
+        <div class="h clip">Resume-Nov-2026.pdf</div>
+        <div class="sub" id="up-sub">1.8 of 2.4 MB</div>
+        <div class="prog"><i id="up-bar" style="width:75%"></i></div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-nt" aria-label="Add a note">
+      <div>
+        <div class="bub" id="nt-bub">Send portfolio link</div>
+        <div class="field" style="padding-right:5px">
+          <span id="nt-text" class="ph grow">Add a note</span>
+          <button class="send pressable" id="nt-send"><svg class="ic"><use href="#up"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile bare" id="t-rate" aria-label="Interview rating">
+      <div style="text-align:center">
+        <div class="h">How did it go?</div>
+        <div class="sub swap" id="rate-sub">Figma · Recruiter screen</div>
+        <div class="stars" id="stars">
+          <svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg><use href="#star"/></svg>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ column 3 ============ -->
+  <div class="col">
+
+    <section class="tile" id="t-mail" aria-label="Follow-up email">
+      <div class="card">
+        <div class="sheet-top"><span class="h">Follow up with Priya</span><span class="x"><svg class="ic"><use href="#x"/></svg></span></div>
+        <div class="to"><span class="av g2" style="width:20px;height:20px;font-size:9px">P</span><span class="clip">Priya Raman · Figma</span></div>
+        <div class="kv"><span>Subject</span><span style="min-height:0">Thank you for Tuesday</span></div>
+        <div class="kv"><span>Message</span><span id="m-text">Loved meeting the team. Happy to share more work.</span></div>
+        <button class="cta pressable" id="m-send"><span>Send</span></button>
+      </div>
+    </section>
+
+    <section class="tile" id="t-note" aria-label="Offer notification">
+      <div class="note" id="note"><span class="okdot"><svg class="ic"><use href="#check"/></svg></span><span class="clip" id="note-t">Notion sent you an offer</span><time id="note-w">now</time></div>
+    </section>
+
+    <section class="tile dark status" id="t-status" aria-label="Application status">
+      <div>
+        <div class="row">
+          <span class="av lg">L</span>
+          <div class="grow"><div class="h clip">Senior Product Designer</div><div class="sub clip">Linear · Remote · Applied 28 Oct</div></div>
+        </div>
+        <div class="track" id="track"><i></i>
+          <span class="node on" style="left:0"></span><span class="node on" style="left:33.33%"></span><span class="node" style="left:66.66%"></span><span class="node" style="left:100%"></span>
+        </div>
+        <div class="steps" id="steps"><span class="on">Applied</span><span class="on">Screen</span><span>Interview</span><span>Offer</span></div>
+        <div class="status-foot"><svg class="ic"><use href="#i-cal"/></svg><span class="swap clip" id="st-foot">Screen passed · Wed 4 Nov</span></div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-jobs" aria-label="New jobs to apply to">
+      <div class="card">
+        <div class="row" style="margin-bottom:4px"><span class="h grow">New for you</span><span class="sub">3 matches today</span></div>
+        <div class="job"><span class="av lg">R</span><div class="grow"><div class="h clip">Staff Designer</div><div class="sub clip">Ramp · $195k</div></div><button class="apply pressable">Apply</button></div>
+        <div class="job"><span class="av lg g2">D</span><div class="grow"><div class="h clip">Senior Designer</div><div class="sub clip">Duolingo · $175k</div></div><button class="apply pressable">Apply</button></div>
+        <div class="job"><span class="av lg g3">C</span><div class="grow"><div class="h clip">Design Lead</div><div class="sub clip">Canva · $180k</div></div><button class="apply pressable">Apply</button></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ column 4 ============ -->
+  <div class="col">
+
+    <section class="tile dark" id="t-ring" aria-label="Weekly goal">
+      <div class="ringwrap">
+        <div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="34"/><circle class="fg" id="ring-fg" cx="42" cy="42" r="34"/></svg><b id="ring-n">4/5</b></div>
+        <div class="sub" style="color:#8d8d86">Applied this week</div>
+      </div>
+    </section>
+
+    <section class="tile bare" id="t-stats" aria-label="Dashboard">
+      <div>
+        <div class="sub">Applications in November</div>
+        <div class="big" id="st-n" style="font-size:30px;margin-top:6px">9</div>
+        <div class="bars" id="bars"><i style="--h:38%"></i><i style="--h:62%"></i><i style="--h:30%"></i><i style="--h:54%"></i><i class="g" style="--h:100%"></i></div>
+      </div>
+    </section>
+
+    <section class="tile bare" id="t-out" aria-label="Offers and rejections">
+      <div>
+        <div class="h">Closed</div>
+        <div class="sub">2 offers · 5 rejected</div>
+        <div class="list" id="out">
+          <div class="li"><span class="av gr">N</span><span class="name clip">Notion</span><span class="chip g">Offer</span></div>
+          <div class="li"><span class="av gr">S</span><span class="name clip">Stripe</span><span class="chip g">Offer</span></div>
+          <div class="li pressable"><span class="av g3">A</span><span class="name clip">Airbnb</span><span class="chip">Rejected</span></div>
+          <div class="li pressable"><span class="av g4">S</span><span class="name clip">Shopify</span><span class="chip">Rejected</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile bare" id="t-timer" aria-label="Next interview countdown">
+      <div class="timer">
+        <div class="sub">Linear interview in</div>
+        <div class="big" id="clock">47:10</div>
+        <div class="tbtns">
+          <button class="cbtn go pressable" id="join"><svg class="ic"><use href="#video"/></svg></button>
+          <button class="cbtn pressable" id="remind"><svg class="ic"><use href="#bell"/></svg></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ column 5 ============ -->
+  <div class="col">
+
+    <section class="tile" id="t-tg" aria-label="Reminders">
+      <div class="card">
+        <div class="tg"><span class="ico"><svg class="ic"><use href="#mail"/></svg></span><div class="grow"><div class="h clip">Follow-up nudges</div><div class="sub clip">7 days after applying</div></div><span class="sw on pressable"></span></div>
+        <div class="tg"><span class="ico"><svg class="ic"><use href="#bell"/></svg></span><div class="grow"><div class="h clip">Interview reminders</div><div class="sub clip">1 hour before</div></div><span class="sw pressable"></span></div>
+      </div>
+    </section>
+
+    <section class="tile" id="t-chips" aria-label="Job filters">
+      <div class="chips" id="chips">
+        <button class="fc pressable on"><svg class="ic"><use href="#check"/></svg>Remote</button>
+        <button class="fc pressable"><svg class="ic"><use href="#check"/></svg>Hybrid</button>
+        <button class="fc pressable on"><svg class="ic"><use href="#check"/></svg>$150k+</button>
+        <button class="fc pressable"><svg class="ic"><use href="#check"/></svg>Full-time</button>
+        <button class="fc pressable"><svg class="ic"><use href="#check"/></svg>Series B+</button>
+      </div>
+    </section>
+
+    <section class="tile" id="t-cmp" aria-label="Offer comparison">
+      <div class="card">
+        <div class="row"><span class="h grow">Compare offers</span><span class="sub">Per year</span></div>
+        <div class="cmp" id="cmp">
+          <span></span>
+          <span class="hd"><span class="av">N</span>Notion</span>
+          <span class="hd"><span class="av g2">S</span>Stripe</span>
+
+          <span class="lab">Base</span><span class="v">$165,000</span><span class="v win">$172,000</span>
+          <span class="lab">Bonus</span><span class="v win">$15,000</span><span class="v">$10,000</span>
+          <span class="lab">Equity</span><span class="v win">$40,000</span><span class="v">$28,000</span>
+          <span class="lab">Location</span><span class="v win">Remote</span><span class="v">Hybrid</span>
+          <span class="rule"></span>
+          <span class="lab">Total</span><span class="v tot win">$220,000</span><span class="v tot">$210,000</span>
+        </div>
+        <button class="cta pressable" id="accept"><span>Accept Notion</span></button>
+      </div>
+    </section>
+
+    <section class="tile" id="t-ck" aria-label="Interview prep">
+      <div class="card">
+        <div class="row" style="margin-bottom:8px"><span class="h grow">Interview prep</span><span class="sub" id="ck-step">Step 2 of 4</span></div>
+        <div id="ck">
+          <div class="ck done"><i><svg class="ic"><use href="#check"/></svg></i>Research the team</div>
+          <div class="ck done"><i><svg class="ic"><use href="#check"/></svg></i>Update portfolio</div>
+          <div class="ck todo"><i><svg class="ic"><use href="#check"/></svg></i>Run a mock interview</div>
+          <div class="ck todo"><i><svg class="ic"><use href="#check"/></svg></i>Prepare questions</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const CHECK = '<svg class="ic"><use href="#check"/></svg>';
+
+  /* ---- calendar is built once, motion or not ---- */
+  const cal = $('#cal');
+  const events = {
+    13: 'Linear critique · Fri 2 pm',
+    17: 'Figma portfolio · Tue 10 am',
+    19: 'Notion offer call · Thu 3:30 pm',
+    24: 'Stripe team match · Tue 11 am'
+  };
+  cal.innerHTML = 'SMTWTFS'.split('').map(d => `<b>${d}</b>`).join('') +
+    Array.from({ length: 30 }, (_, i) => {
+      const d = i + 1; // 1 Nov 2026 is a Sunday
+      return `<div class="day${d === 12 ? ' today' : ''}${events[d] ? ' has' : ''}${d === 13 ? ' sel' : ''}" data-d="${d}"><span>${d}</span></div>`;
+    }).join('');
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  /* ---- helpers ---- */
+  async function tap(el) {
+    const tile = el.closest('.tile');
+    const tr = tile.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const dot = document.createElement('i');
+    dot.className = 'tapdot';
+    dot.style.left = (r.left + r.width / 2 - tr.left) + 'px';
+    dot.style.top = (r.top + r.height / 2 - tr.top) + 'px';
+    tile.appendChild(dot);
+    el.classList.add('is-press');
+    await sleep(170);
+    el.classList.remove('is-press');
+    setTimeout(() => dot.remove(), 600);
+    await sleep(80);
+  }
+  async function type(el, text, speed = 48) {
+    el.classList.add('caret');
+    for (let i = 1; i <= text.length; i++) {
+      el.textContent = text.slice(0, i);
+      await sleep(speed + Math.random() * 40);
+    }
+  }
+  async function swap(el, html) {
+    el.classList.add('out');
+    await sleep(200);
+    el.innerHTML = html;
+    el.classList.remove('out');
+  }
+  function count(el, from, to, ms = 700, fmt = v => v) {
+    const t0 = performance.now();
+    (function f(t) {
+      const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(Math.round(from + (to - from) * e));
+      if (k < 1) requestAnimationFrame(f);
+    })(t0);
+  }
+  function bump(el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  function loop(fn, delay = 0) {
+    (async () => { await sleep(delay); for (;;) await fn(); })();
+  }
+
+  /* 1 calendar */
+  loop(async () => {
+    for (const d of [17, 19, 24, 13]) {
+      await sleep(1700);
+      const el = $(`.day[data-d="${d}"]`, cal);
+      await tap(el);
+      $$('.day.sel', cal).forEach(x => x.classList.remove('sel'));
+      el.classList.add('sel');
+      await swap($('#cal-ev'), events[d]);
+    }
+  }, 300);
+
+  /* 2 segmented tabs */
+  loop(async () => {
+    const btns = $$('#seg button'), pill = $('#seg i');
+    for (const i of [1, 2, 0]) {
+      await sleep(1500);
+      await tap(btns[i]);
+      btns.forEach((b, j) => b.classList.toggle('on', j === i));
+      pill.style.transform = `translateX(${i * 100}%)`;
+    }
+  }, 900);
+
+  /* 3 target salary */
+  loop(async () => {
+    const val = $('#t-val'), sub = $('#t-sub');
+    const meets = { 160: 11, 165: 9, 170: 8, 175: 6 };
+    let v = 160;
+    const set = async n => {
+      v = n;
+      val.textContent = '$' + (n * 1000).toLocaleString('en-US');
+      bump(val);
+      sub.textContent = `${meets[n]} of 14 active roles meet this`;
+    };
+    await sleep(1400);
+    for (const n of [165, 170, 175]) { await tap($('#t-plus')); await set(n); await sleep(520); }
+    await sleep(1300);
+    for (const n of [170, 165, 160]) { await tap($('#t-minus')); await set(n); await sleep(420); }
+  }, 500);
+
+  /* 4 search */
+  loop(async () => {
+    const t = $('#s-text'), c = $('#s-count');
+    await sleep(1200);
+    t.className = ''; t.textContent = '';
+    await type(t, 'Product designer, remote');
+    await sleep(250);
+    c.classList.add('on');
+    await sleep(2400);
+    c.classList.remove('on');
+    for (let s = t.textContent; s.length; s = s.slice(0, -1)) { t.textContent = s.slice(0, -1); await sleep(16); }
+    t.className = 'ph'; t.textContent = 'Search roles or companies';
+  }, 200);
+
+  /* note composer */
+  loop(async () => {
+    const t = $('#nt-text'), b = $('#nt-send'), bub = $('#nt-bub');
+    for (const msg of ['Ask about team size', 'Send portfolio link']) {
+      await sleep(1700);
+      t.className = 'grow'; t.textContent = '';
+      b.classList.add('ready');
+      await type(t, msg);
+      await sleep(350);
+      await tap(b);
+      t.className = 'ph grow'; t.classList.remove('caret'); t.textContent = 'Add a note';
+      b.classList.remove('ready');
+      bub.classList.add('off');
+      await sleep(180);
+      bub.textContent = msg;
+      bub.classList.remove('off');
+      await sleep(1600);
+    }
+  }, 2200);
+
+  /* 5 funnel */
+  loop(async () => {
+    const f = $('#fun');
+    f.classList.add('reset');
+    $$('[data-n]', f).forEach(n => n.textContent = '0');
+    await sleep(350);
+    f.classList.remove('reset');
+    const rows = $$('.r', f);
+    rows.forEach((r, i) => {
+      $('i', r).style.transitionDelay = i * 130 + 'ms';
+      const n = $('[data-n]', r);
+      setTimeout(() => count(n, 0, +n.dataset.n, 750), i * 130);
+    });
+    await sleep(5200);
+  }, 1500);
+
+  /* 6 in progress */
+  loop(async () => {
+    const rows = $$('#prog .li');
+    const move = async (i, label, cls) => {
+      await tap(rows[i]);
+      rows[i].classList.add('flash');
+      const c = $('.chip', rows[i]);
+      c.textContent = label; c.className = 'chip pop ' + cls;
+      await sleep(900);
+      rows[i].classList.remove('flash');
+    };
+    await sleep(1600);
+    await move(2, 'Screen', 'g');
+    await sleep(1100);
+    await move(1, 'Interview', 'g');
+    await sleep(2400);
+    $('.chip', rows[2]).textContent = 'Applied'; $('.chip', rows[2]).className = 'chip';
+    $('.chip', rows[1]).textContent = 'Screen'; $('.chip', rows[1]).className = 'chip';
+  }, 1100);
+
+  /* 7 upload */
+  loop(async () => {
+    const bar = $('#up-bar'), sub = $('#up-sub'), ic = $('#up-ic');
+    ic.classList.remove('done'); ic.innerHTML = '<svg class="ic"><use href="#file"/></svg>';
+    bar.style.width = '0%';
+    const t0 = performance.now(), dur = 2600;
+    await new Promise(done => (function f(t) {
+      const k = Math.min(1, (t - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      bar.style.width = e * 100 + '%';
+      sub.textContent = (2.4 * e).toFixed(1) + ' of 2.4 MB';
+      k < 1 ? requestAnimationFrame(f) : done();
+    })(t0));
+    ic.classList.add('done'); ic.innerHTML = CHECK;
+    sub.textContent = 'Uploaded · 2.4 MB';
+    await sleep(2600);
+  }, 700);
+
+  /* 8 rating */
+  loop(async () => {
+    const stars = $$('#stars svg'), sub = $('#rate-sub');
+    stars.forEach(s => s.classList.remove('on'));
+    sub.textContent = 'Figma · Recruiter screen';
+    await sleep(1300);
+    await tap(stars[3]);
+    for (let i = 0; i < 4; i++) { stars[i].classList.add('on'); await sleep(90); }
+    await swap(sub, 'Went well');
+    await sleep(3000);
+  }, 1900);
+
+  /* 9 follow-up email */
+  loop(async () => {
+    const m = $('#m-text'), b = $('#m-send');
+    b.classList.remove('sent'); b.innerHTML = '<span>Send</span>';
+    m.textContent = '';
+    await sleep(700);
+    await type(m, 'Loved meeting the team. Happy to share more work.', 34);
+    await sleep(450);
+    m.classList.remove('caret');
+    await tap(b);
+    b.classList.add('sent'); b.innerHTML = CHECK + '<span>Sent</span>';
+    await sleep(2600);
+  }, 400);
+
+  /* 10 notification */
+  loop(async () => {
+    const n = $('#note');
+    for (const [t, w] of [['Figma moved you to Interview', '2m'], ['Stripe sent you an offer', '1h'], ['Notion sent you an offer', 'now']]) {
+      await sleep(2600);
+      n.classList.add('off');
+      await sleep(230);
+      $('#note-t').textContent = t; $('#note-w').textContent = w;
+      n.classList.remove('off');
+    }
+  }, 1400);
+
+  /* 11 application status */
+  loop(async () => {
+    const track = $('#track'), nodes = $$('.node', track), steps = $$('#steps span'), foot = $('#st-foot');
+    const set = k => {
+      $('i', track).style.width = (k - 1) / 3 * 100 + '%';
+      nodes.forEach((n, i) => n.classList.toggle('on', i < k));
+      steps.forEach((s, i) => s.classList.toggle('on', i < k));
+    };
+    set(2); foot.textContent = 'Screen passed · Wed 4 Nov';
+    await sleep(1800);
+    await tap(nodes[2]); set(3);
+    await swap(foot, 'Design critique · Fri 13 Nov, 2:00 pm');
+    await sleep(2200);
+    await tap(nodes[3]); set(4);
+    await swap(foot, 'Offer received · reply by Fri 20 Nov');
+    await sleep(2800);
+  }, 600);
+
+  /* 12 new jobs */
+  loop(async () => {
+    const btns = $$('#t-jobs .apply');
+    btns.forEach(b => { b.classList.remove('done'); b.textContent = 'Apply'; });
+    for (const i of [0, 1]) {
+      await sleep(1500);
+      await tap(btns[i]);
+      btns[i].classList.add('done'); btns[i].innerHTML = CHECK + 'Sent';
+    }
+    await sleep(2600);
+  }, 1300);
+
+  /* 13 weekly goal ring */
+  loop(async () => {
+    const fg = $('#ring-fg'), n = $('#ring-n'), C = 213.6;
+    for (const k of [3, 4, 5]) {
+      fg.style.strokeDashoffset = C * (1 - k / 5);
+      n.textContent = k + '/5'; bump(n);
+      await sleep(k === 5 ? 2600 : 1500);
+    }
+  }, 1500);
+
+  /* 14 dashboard stat */
+  loop(async () => {
+    const last = $('#bars i.g'), n = $('#st-n');
+    last.style.height = '46%'; n.textContent = '6';
+    await sleep(900);
+    last.style.height = '100%'; count(n, 6, 9, 700);
+    await sleep(4300);
+  }, 2100);
+
+  /* 15 closed: archive a rejection */
+  loop(async () => {
+    const rows = $$('#out .li.pressable');
+    for (const r of rows) {
+      await sleep(1500);
+      await tap(r);
+      r.classList.add('arch'); $('.chip', r).textContent = 'Archived';
+    }
+    await sleep(2400);
+    rows.forEach(r => { r.classList.remove('arch'); $('.chip', r).textContent = 'Rejected'; });
+  }, 2300);
+
+  /* 16 countdown */
+  let secs = 47 * 60 + 10;
+  setInterval(() => {
+    secs = secs > 0 ? secs - 1 : 47 * 60 + 10;
+    $('#clock').textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+  }, 1000);
+  loop(async () => {
+    const b = $('#remind');
+    await sleep(2400);
+    await tap(b); b.classList.add('set');
+    await sleep(3000);
+    await tap(b); b.classList.remove('set');
+  }, 800);
+
+  /* 17 reminder toggles */
+  loop(async () => {
+    const sw = $$('#t-tg .sw');
+    await sleep(1500); await tap(sw[1]); sw[1].classList.add('on');
+    await sleep(2300); await tap(sw[0]); sw[0].classList.remove('on');
+    await sleep(1300); await tap(sw[0]); sw[0].classList.add('on');
+    await sleep(1700); await tap(sw[1]); sw[1].classList.remove('on');
+  }, 1000);
+
+  /* 18 filter chips */
+  loop(async () => {
+    const c = $$('#chips .fc');
+    for (const i of [3, 1, 0, 3, 1, 0]) {
+      await sleep(1150);
+      await tap(c[i]);
+      c[i].classList.toggle('on');
+    }
+  }, 1700);
+
+  /* 19 offer comparison */
+  loop(async () => {
+    const cells = $$('#cmp .v'), btn = $('#accept');
+    const wins = [1, 2, 4, 6, 8]; // winning cell per row, in reading order
+    cells.forEach(c => c.classList.remove('win'));
+    btn.classList.remove('sent'); btn.innerHTML = '<span>Accept Notion</span>';
+    await sleep(900);
+    for (const w of wins) { cells[w].classList.add('win'); await sleep(480); }
+    await sleep(900);
+    await tap(btn);
+    btn.classList.add('sent'); btn.innerHTML = CHECK + '<span>Accepted · $220,000</span>';
+    await sleep(2800);
+  }, 200);
+
+  /* 20 prep checklist */
+  loop(async () => {
+    const items = $$('#ck .ck'), step = $('#ck-step');
+    const set = k => {
+      items.forEach((it, i) => { it.classList.toggle('done', i < k); it.classList.toggle('todo', i >= k); });
+      step.textContent = k === 4 ? 'All done' : `Step ${k} of 4`;
+    };
+    set(2);
+    for (const k of [3, 4]) { await sleep(1700); await tap($('i', items[k - 1])); set(k); }
+    await sleep(2600);
+  }, 1200);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Tracker</title>
+<meta name="description" content="Track job applications, interviews and offers. Your data stays in your browser.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></symbol>
+  <symbol id="left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="2.5"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></symbol>
+</svg>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand"><span class="logo"><svg class="ic"><use href="#check"/></svg></span>Job Tracker</div>
+    <div class="top-actions">
+      <button class="btn ghost" data-act="export">Export</button>
+      <button class="btn ghost" data-act="import">Import</button>
+      <button class="btn dark" data-act="new"><svg class="ic"><use href="#plus"/></svg>Add application</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden>
+    <span>You're looking at sample data so the page isn't empty.</span>
+    <button class="btn small dark" data-act="clear-sample">Start fresh</button>
+  </div>
+
+  <section class="stats" id="stats" aria-label="Dashboard"></section>
+
+  <div class="main">
+    <div class="col-main">
+      <section class="tile" aria-label="Applications">
+        <div class="toolbar">
+          <label class="field">
+            <svg class="ic"><use href="#search"/></svg>
+            <input id="q" type="search" placeholder="Search roles or companies" autocomplete="off">
+          </label>
+          <div class="seg" id="tabs" role="tablist"></div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <ul class="apps" id="apps"></ul>
+      </section>
+
+      <section class="tile" aria-label="Offer comparison">
+        <div class="card">
+          <div class="row"><h2 class="h grow">Compare offers</h2><span class="sub">Per year</span></div>
+          <div id="offers"></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="col-side">
+      <section class="tile" aria-label="Interview calendar">
+        <div class="card" id="calendar"></div>
+      </section>
+      <section class="tile" aria-label="Upcoming interviews">
+        <div class="card">
+          <div class="row"><h2 class="h grow">Upcoming interviews</h2><span class="sub" id="up-count"></span></div>
+          <ul class="ups" id="upcoming"></ul>
+        </div>
+      </section>
+      <section class="tile" aria-label="Pipeline">
+        <div class="card">
+          <div class="row"><h2 class="h grow">Pipeline</h2><span class="sub">All time</span></div>
+          <div class="fun" id="funnel"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="foot">
+    <span>Saved in this browser only. Use Export to back up or move your data.</span>
+    <a href="cards.html">Design cards</a>
+  </footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form id="form" method="dialog" novalidate>
+    <div class="dlg-head">
+      <h2 class="h" id="dlg-title">Add application</h2>
+      <button type="button" class="x" data-act="close" aria-label="Close"><svg class="ic"><use href="#x"/></svg></button>
+    </div>
+
+    <div class="dlg-body">
+      <div class="grid2">
+        <label class="f"><span>Company</span><input name="company" required maxlength="80" placeholder="Linear"></label>
+        <label class="f"><span>Role</span><input name="role" required maxlength="100" placeholder="Senior Product Designer"></label>
+        <label class="f"><span>Location</span><input name="location" maxlength="80" placeholder="New York"></label>
+        <label class="f"><span>Work mode</span>
+          <select name="mode"><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select>
+        </label>
+        <label class="f"><span>Salary (per year, $)</span><input name="salary" type="number" min="0" step="1000" inputmode="numeric" placeholder="165000"></label>
+        <label class="f"><span>Job link</span><input name="url" type="url" maxlength="500" placeholder="https://"></label>
+        <label class="f"><span>Status</span><select name="status" id="f-status"></select></label>
+        <label class="f"><span>Applied on</span><input name="applied" type="date"></label>
+      </div>
+
+      <fieldset class="fs" id="offer-fs" hidden>
+        <legend>Offer</legend>
+        <div class="grid3">
+          <label class="f"><span>Base</span><input name="base" type="number" min="0" step="1000" inputmode="numeric"></label>
+          <label class="f"><span>Bonus</span><input name="bonus" type="number" min="0" step="500" inputmode="numeric"></label>
+          <label class="f"><span>Equity / yr</span><input name="equity" type="number" min="0" step="500" inputmode="numeric"></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Interviews</legend>
+        <ul class="sublist" id="iv-list"></ul>
+        <div class="addrow iv">
+          <input id="iv-date" type="date" aria-label="Interview date">
+          <input id="iv-time" type="time" aria-label="Interview time">
+          <input id="iv-type" maxlength="60" placeholder="Portfolio review" aria-label="Interview type">
+          <button type="button" class="btn small" data-act="add-iv">Add</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="fs">
+        <legend>Notes</legend>
+        <ul class="sublist" id="note-list"></ul>
+        <div class="addrow">
+          <input id="note-text" maxlength="300" placeholder="Ask about team size" aria-label="Note">
+          <button type="button" class="btn small" data-act="add-note">Add</button>
+        </div>
+      </fieldset>
+
+      <p class="err" id="err" role="alert" hidden></p>
+    </div>
+
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" data-act="delete" id="btn-delete">Delete</button>
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" data-act="close">Cancel</button>
+      <button type="submit" class="btn green">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
